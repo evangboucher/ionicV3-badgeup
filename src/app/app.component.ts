@@ -6,6 +6,7 @@ import { Config, Nav, Platform } from 'ionic-angular';
 
 import { FirstRunPage } from '../pages';
 import { Settings } from '../providers';
+import {BadgeUpClient, BadgeUpEarnedAchievement, BadgeUpNotificationType} from '@badgeup/badgeup-ionic-client';
 
 @Component({
   template: `<ion-menu [content]="content">
@@ -28,6 +29,7 @@ import { Settings } from '../providers';
 })
 export class MyApp {
   rootPage = FirstRunPage;
+  badgeUpClient: BadgeUpClient;
 
   @ViewChild(Nav) nav: Nav;
 
@@ -42,10 +44,11 @@ export class MyApp {
     { title: 'Master Detail', component: 'ListMasterPage' },
     { title: 'Menu', component: 'MenuPage' },
     { title: 'Settings', component: 'SettingsPage' },
+    { title: 'All Achievements', component: 'AllEarnedAchievementsPage' },
     { title: 'Search', component: 'SearchPage' }
   ]
 
-  constructor(private translate: TranslateService, platform: Platform, settings: Settings, private config: Config, private statusBar: StatusBar, private splashScreen: SplashScreen) {
+  constructor(private translate: TranslateService, platform: Platform, settings: Settings, private config: Config, private statusBar: StatusBar, private splashScreen: SplashScreen, badgeUpClient: BadgeUpClient) {
     platform.ready().then(() => {
       // Okay, so the platform is ready and our plugins are available.
       // Here you can do any higher level native things you might need.
@@ -53,6 +56,23 @@ export class MyApp {
       this.splashScreen.hide();
     });
     this.initTranslate();
+    badgeUpClient.setSubject('mark'); // in production this would be some sort of ID or UUID
+
+    badgeUpClient.subscribe(this.badgeUpNotificationCallback);
+    badgeUpClient.emit({
+      key: "user:action"
+    });
+  }
+
+  ngOnDestroy() {
+    this.badgeUpClient.unsubscribe(this.badgeUpNotificationCallback);
+  }
+
+  badgeUpNotificationCallback(notificationType: BadgeUpNotificationType, data: any) {
+    if(notificationType === BadgeUpNotificationType.NewAchievementEarned) {
+      let ea = <BadgeUpEarnedAchievement>data;
+      alert("You earned a new achievement! " + ea.achievement.name);
+    }
   }
 
   initTranslate() {
